@@ -1,18 +1,23 @@
 import cv2
 import numpy as np
-import height_checker
+from height_checker import HeightChecker
 from time import process_time
 from centroid_tracker import CentroidTracker
 
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
+RESIZE_SCALAR = 0.4
 
 # Start the stopwatch / counter  
 t1_start = process_time() 
 
-# initialize our centroid tracker and frame dimensions
+# Initialize our centroid tracker and frame dimensions
 ct = CentroidTracker()
-(H, W) = (None, None)
+
+# Initialize the height checker and desired starting height boundary
+starting_y = FRAME_HEIGHT / 4 * RESIZE_SCALAR
+starting_height = FRAME_HEIGHT / 10 * RESIZE_SCALAR
+height_checker = HeightChecker(starting_y, starting_height, FRAME_WIDTH)
 
 # Load Yolo
 net = cv2.dnn.readNet("yolov3_training_last.weights", "yolov3_testing.cfg")
@@ -39,7 +44,7 @@ while True:
     ret, frame = cap.read() # If there is a video feed, ret is true
 
     # Resize Camera
-    frame = cv2.resize(frame, None, fx=0.4, fy=0.4)
+    frame = cv2.resize(frame, None, fx=RESIZE_SCALAR, fy=RESIZE_SCALAR)
     height, width, channels = frame.shape
 
     # Detecting objects
@@ -86,8 +91,7 @@ while True:
     for i in range(len(boxes)):
         if i in indexes:
             startX, startY, endX, endY = boxes[i]
-            cv2.rectangle(frame, (startX, startY), (endX, endY),
-                (0, 255, 0), 2)
+            cv2.rectangle(frame, (startX, startY), (endX, endY), (0, 255, 0), 2)
             
             #font = cv2.FONT_HERSHEY_PLAIN
             #label = str(classes[class_ids[i]])
@@ -106,14 +110,34 @@ while True:
             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
         cv2.circle(frame, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
 
-    
+    # Detect any user input
+    pressed_key = cv2.waitKey(1)
+
+    # Raise height checker's height boundary
+    if pressed_key & 0xFF == ord('w'):
+        height_checker.change_start_y(-2)
+
+    # Lower height checker's height boundary
+    if pressed_key & 0xFF == ord('s'):
+        height_checker.change_start_y(2)
+
+    # Increase height checker's boundary length
+    if pressed_key & 0xFF == ord('d'):
+        height_checker.change_length(2)
+
+    # Decrease height checker's boundary length
+    if pressed_key & 0xFF == ord('a'):
+        height_checker.change_length(-2)
+
+    # Draw desired height boundary
+    height_checker.draw_boundary(frame)
 
     # Show frame with boxes drawn
     capture_out.write(frame)
     cv2.imshow('frame', frame)
 
     # Quit if q is pressed
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    if pressed_key & 0xFF == ord('q'):
         break
 
     # Calculate FPS and print it out
