@@ -6,7 +6,9 @@ from centroid_tracker import CentroidTracker
 
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
-RESIZE_SCALAR = 0.4
+RESIZE_SCALAR = 0.6
+
+debug_mode = False
 
 # Start the stopwatch / counter  
 t1_start = process_time() 
@@ -22,6 +24,7 @@ height_checker = HeightChecker(starting_y, starting_height, FRAME_WIDTH)
 # Load Yolo
 net = cv2.dnn.readNet("yolov3_training_last.weights", "yolov3_testing.cfg")
 
+# Enable GPU processing
 net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
 net.setPreferableTarget(cv2.dnn.DNN_TARGET_CUDA)
 
@@ -132,6 +135,9 @@ while True:
     # Draw desired height boundary
     height_checker.draw_boundary(frame)
 
+    # Check height
+    height_checker.check_if_falling(objects)
+
     # Show frame with boxes drawn
     capture_out.write(frame)
     cv2.imshow('frame', frame)
@@ -140,10 +146,11 @@ while True:
     if pressed_key & 0xFF == ord('q'):
         break
 
-    # Calculate FPS and print it out
-    frame_time = process_time() - frame_start_time
-    frames_per_second = int(1 / frame_time) if frame_time else 1 # div by 0 check
-    print("FPS = ", frames_per_second)
+    if debug_mode:
+        # Calculate FPS and print it out
+        frame_time = process_time() - frame_start_time
+        frames_per_second = int(1 / frame_time) if frame_time else 1 # div by 0 check
+        print("FPS = ", frames_per_second)
 
     
 
