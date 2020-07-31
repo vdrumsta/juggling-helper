@@ -10,13 +10,6 @@ class JuggleDetails:
     max_height: int
     is_falling: bool = False
 
-    """ Used to record the moment when the y-coord is first recorded to be lower,
-        than the last recorded y-coord"""
-    recorded_lower_y: bool = False
-
-    """ The time when a lower y-coord was first recorded"""
-    lower_y_time: float = 0.0
-
 class HeightChecker:
     """ This class is used to define a boundary inside which the tracked
         objects that are travelling upwards should stop"""
@@ -25,7 +18,7 @@ class HeightChecker:
         self.start_y = int(starting_y)
         self.length = int(starting_height)
         self.frame_width = int(frame_width)
-        self.recorded_balls = OrderedDict()
+        self.recorded_balls: OrderedDict[int, JuggleDetails] = OrderedDict()
 
     def draw_boundary(self, frame):
         """ Draw a rectangle that represents where juggling balls 
@@ -39,7 +32,7 @@ class HeightChecker:
         """ Raise or lower height boundary"""
         self.start_y += amount
 
-    def change_length(self, amount: int = 2):
+    def change_boundary_length(self, amount: int = 2):
         """ Increase or decrease length of the boundary"""
         new_length = self.length + amount
 
@@ -53,19 +46,14 @@ class HeightChecker:
         for (objectID, centroid) in current_balls.items():
             # If the ball was previously recorded
             if objectID in self.recorded_balls:
-                ball_details = self.recorded_balls[objectID]
+                previously_recorded_details = self.recorded_balls[objectID]
 
                 # Check if the ball is lower than previously recorded
-                # NOTE: if the ball is closer to the ground, it's y-coord will be HIGHER
-                if ball_details.max_height < centroid[1]:
-                    if ball_details.recorded_lower_y:
-                        # Time that the ball has been lowering for 
-                        lowering_time = time.time() - ball_details.lower_y_time
-                        if lowering_time > 1.0:
-                            print("max height")
-                    else:
-                        ball_details.recorded_lower_y = True
-                        ball_details.lower_y_time = time.time()
+                # NOTE: if the ball is closer to the ground, it's y-coord number will be HIGHER
+                if (not previously_recorded_details.is_falling 
+                        and previously_recorded_details.max_height < centroid[1]):
+                    print("max height")
+                    self.recorded_balls[objectID].is_falling = True
                 else:
                     self.recorded_balls[objectID].max_height = centroid[1]
             else:

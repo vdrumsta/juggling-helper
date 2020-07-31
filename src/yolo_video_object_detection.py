@@ -126,11 +126,11 @@ while True:
 
     # Increase height checker's boundary length
     if pressed_key & 0xFF == ord('d'):
-        height_checker.change_length(2)
+        height_checker.change_boundary_length(2)
 
     # Decrease height checker's boundary length
     if pressed_key & 0xFF == ord('a'):
-        height_checker.change_length(-2)
+        height_checker.change_boundary_length(-2)
 
     # Draw desired height boundary
     height_checker.draw_boundary(frame)
