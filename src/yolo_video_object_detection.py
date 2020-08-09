@@ -4,22 +4,25 @@ from height_checker import HeightChecker
 from time import process_time
 from centroid_tracker import CentroidTracker
 
+RESIZE_SCALAR = 0.6
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
-RESIZE_SCALAR = 0.6
-
-debug_mode = False
+RESIZED_WIDTH = int(FRAME_WIDTH * RESIZE_SCALAR)
+RESIZED_HEIGHT = int(FRAME_HEIGHT * RESIZE_SCALAR)
+TRACKER_REACQUISITION_RANGE = int(150 * RESIZE_SCALAR)
+TRACKER_REACQUISITION_TIME = 0.2
+DEBUG_MODE = True
 
 # Start the stopwatch / counter  
 t1_start = process_time() 
 
 # Initialize our centroid tracker and frame dimensions
-ct = CentroidTracker()
+ct = CentroidTracker(TRACKER_REACQUISITION_RANGE, TRACKER_REACQUISITION_TIME)
 
 # Initialize the height checker and desired starting height boundary
 starting_y = FRAME_HEIGHT / 4 * RESIZE_SCALAR
 starting_height = FRAME_HEIGHT / 10 * RESIZE_SCALAR
-height_checker = HeightChecker(starting_y, starting_height, FRAME_WIDTH)
+height_checker = HeightChecker(starting_y, starting_height, RESIZED_WIDTH)
 
 # Load Yolo
 net = cv2.dnn.readNet("yolov3_training_last.weights", "yolov3_testing.cfg")
@@ -39,9 +42,8 @@ output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)    # Capture first webcam
 fourcc = cv2.VideoWriter_fourcc(*'XVID')    # Video encoder
 capture_out = cv2.VideoWriter('output.avi', fourcc, 20.0, 
-    (FRAME_WIDTH, FRAME_HEIGHT))    # Encoded video properties
+    (RESIZED_WIDTH, RESIZED_HEIGHT))    # Encoded video properties
 
-print("Time to load", process_time() - t1_start)
 while True:
     frame_start_time = process_time()
     ret, frame = cap.read() # If there is a video feed, ret is true
@@ -61,7 +63,6 @@ while True:
     class_ids = []
     confidences = []
     boxes = []
-
     
     # Detect objects
     for out in outs:
@@ -90,28 +91,26 @@ while True:
     # Select objects with high probability
     indexes = cv2.dnn.NMSBoxes(boxes, confidences, 0.5, 0.4)
 
-    # Draw bounding boxes
-    for i in range(len(boxes)):
-        if i in indexes:
-            startX, startY, endX, endY = boxes[i]
-            cv2.rectangle(frame, (startX, startY), (endX, endY), (0, 255, 0), 2)
-            
-            #font = cv2.FONT_HERSHEY_PLAIN
-            #label = str(classes[class_ids[i]])
-            #cv2.putText(frame, label, (x, y + 30), font, 3, color, 2)
-    
-    # update our centroid tracker using the computed set of bounding
+    if DEBUG_MODE:
+        # Draw bounding boxes
+        for i in range(len(boxes)):
+            if i in indexes:
+                startX, startY, endX, endY = boxes[i]
+                cv2.rectangle(frame, (startX, startY), (endX, endY), (0, 255, 0), 2)
+
+    # Update our centroid tracker using the computed set of bounding
     # box rectangles
     objects = ct.update(boxes)
 
-    # loop over the tracked objects
-    for (objectID, centroid) in objects.items():
-        # draw both the ID of the object and the centroid of the
-        # object on the output frame
-        text = "ID {}".format(objectID)
-        cv2.putText(frame, text, (centroid[0] - 10, centroid[1] - 10),
-            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        cv2.circle(frame, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
+    if DEBUG_MODE:
+        # Loop over the tracked objects and draw their centroids
+        for (objectID, centroid) in objects.items():
+            # Draw both the ID of the object and the centroid of the
+            # object on the output frame
+            text = "ID {}".format(objectID)
+            cv2.putText(frame, text, (centroid[0] - 10, centroid[1] - 10),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            cv2.circle(frame, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
 
     # Detect any user input
     pressed_key = cv2.waitKey(1)
@@ -146,13 +145,11 @@ while True:
     if pressed_key & 0xFF == ord('q'):
         break
 
-    if debug_mode:
+    if DEBUG_MODE:
         # Calculate FPS and print it out
         frame_time = process_time() - frame_start_time
         frames_per_second = int(1 / frame_time) if frame_time else 1 # div by 0 check
         print("FPS = ", frames_per_second)
-
-    
 
 # Clean up
 cap.release()
