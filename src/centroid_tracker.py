@@ -28,7 +28,6 @@ class CentroidTracker():
         self.objects[self.nextObjectID] = centroid
         self.disappeared[self.nextObjectID] = 0
         self.nextObjectID += 1
-        print("new id " + str(self.nextObjectID))
 
     def deregister(self, objectID):
         # to deregister an object ID we delete the object ID from

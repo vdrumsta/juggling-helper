@@ -11,7 +11,7 @@ RESIZED_WIDTH = int(FRAME_WIDTH * RESIZE_SCALAR)
 RESIZED_HEIGHT = int(FRAME_HEIGHT * RESIZE_SCALAR)
 TRACKER_REACQUISITION_RANGE = int(150 * RESIZE_SCALAR)
 TRACKER_REACQUISITION_TIME = 0.2
-DEBUG_MODE = True
+DEBUG_MODE = False
 
 # Start the stopwatch / counter  
 t1_start = process_time() 
@@ -135,7 +135,7 @@ while True:
     height_checker.draw_boundary(frame)
 
     # Check height
-    height_checker.check_if_falling(objects)
+    height_checker.update(frame, objects)
 
     # Show frame with boxes drawn
     capture_out.write(frame)
