@@ -12,11 +12,12 @@ class JuggleDetails:
     is_falling: bool = False
 
 @dataclass
-class RecordedPoint:
+class DrawPoint:
     """ Used to record a success/fail point of where a ball has reached max height.
         Also records the time when it started drawing it so that the point 
         disappears after a certain amount of time. """
     centroid: Tuple[int, int]
+    is_successful: bool
     starting_time: float
 
 class HeightChecker:
@@ -24,7 +25,9 @@ class HeightChecker:
         objects that are travelling upwards should stop"""
 
     def __init__(self, starting_y, starting_height, frame_width):
-        self.drawn_height_points: OrderedDict[int, RecordedPoint] = OrderedDict()
+        self.drawn_height_points: OrderedDict[int, DrawPoint] = OrderedDict()
+        self.successes = 0
+        self.failures = 0
 
         # Starting y coordinate for drawing the height boundary box
         self.start_y = int(starting_y)
@@ -57,34 +60,18 @@ class HeightChecker:
         else:
             self.length = 0
 
-    def draw_max_height_point(self, frame, object_id: int, centroid: Tuple[int, int]):
-        """ Draw a success/fail point depending on whether it falls within
-            height boundary or not """
-        # Check if the point has been drawn before
-        if object_id in self.drawn_height_points:
-            time_since_drawn = time.time() - self.drawn_height_points[object_id].starting_time
-
-            # if it's been longer than 0.5 secs, then don't draw it anymore
-            if time_since_drawn > 0.5:
-                del self.drawn_height_points[object_id]
-                return
-        else:
-            # Record that we've drawn a point
-            self.drawn_height_points[object_id] = RecordedPoint(
-                centroid = centroid, starting_time = time.time()
-            )
-
-        # Draw a green point if centroid is within the boundary box
+    def is_successful_throw(self, centroid: Tuple[int, int]):
+        """ Returns true if the ball's max height was inside a boundary
+            box (success) and false if its max height was outside the
+            boundary box (failure) """
+        # Check if max height is inside the boundary box
         if centroid[1] >= self.start_y and centroid[1] <= (self.start_y + self.length):
-            cv2.circle(frame, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
-        # Draw a red point if centroid is outside the boundary box
+            return True
+        # Or outside it
         else:
-            cv2.circle(frame, (centroid[0], centroid[1]), 4, (255, 0, 0), -1)
+            return False
 
-    def update(self, frame, current_balls: OrderedDict):
-        """ Main function that should be called every fram to check whether 
-            balls are falling and draw success/fail points """
-
+    def draw_recorded_points(self, frame):
         # Keep track of which previously drawn points to not draw anymore
         points_to_remove = []
         
@@ -96,30 +83,42 @@ class HeightChecker:
             # was drawn, then don't draw it anymore
             if time_since_drawn > 0.5:
                 points_to_remove.append(object_id)
-                continue
-
-            self.draw_max_height_point(frame, object_id, recorded_point.centroid)
+            else:
+                draw_color = (0, 255, 0) if recorded_point.is_successful else (255, 0, 0)
+                cv2.circle(frame, recorded_point.centroid, 4, draw_color, -1)
         
         # Remove points that have already been drawn for a while
         for id in points_to_remove:
             del self.drawn_height_points[id]
 
+    def update(self, frame, current_balls: OrderedDict):
+        """ Main function that should be called every fram to check whether 
+            balls are falling and draw success/fail points """
+        # Loop through balls and check if they started falling
         for object_id, centroid in current_balls.items():
             # If the ball was previously recorded
             if object_id in self.recorded_balls:
                 previously_recorded_details = self.recorded_balls[object_id]
 
-                # Check if the ball is lower than previously recorded
+                # Check if the ball is lower than previously recorded. This means 
+                # that the ball has reached has reached its max height in the 
+                # previous frame
                 # NOTE: if the ball is closer to the ground, it's y-coord number will be HIGHER
                 if (not previously_recorded_details.is_falling 
                         and previously_recorded_details.max_height < centroid[1]):
                     self.recorded_balls[object_id].is_falling = True
 
-                    # Draw a success/fail point on frame
-                    self.draw_max_height_point(frame, object_id, centroid)
+                    is_successful = self.is_successful_throw(centroid)
+                    # Record a draw point
+                    self.drawn_height_points[object_id] = DrawPoint(
+                        tuple(centroid), is_successful, starting_time = time.time()
+                    )
+
                 # Record the balls current height
                 else:
                     self.recorded_balls[object_id].max_height = centroid[1]
             # If the ball hasnt been previously detected, record its height
             else:
                 self.recorded_balls[object_id] = JuggleDetails(max_height = centroid[1])
+
+        self.draw_recorded_points(frame)
