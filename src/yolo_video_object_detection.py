@@ -1,10 +1,11 @@
+from time import process_time
 import cv2
 import numpy as np
 from height_checker import HeightChecker
-from time import process_time
 from centroid_tracker import CentroidTracker
 
-RESIZE_SCALAR = 0.6
+# Constants
+RESIZE_SCALAR = 0.4
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
 RESIZED_WIDTH = int(FRAME_WIDTH * RESIZE_SCALAR)

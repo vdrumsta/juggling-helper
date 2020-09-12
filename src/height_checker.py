@@ -1,8 +1,9 @@
 import cv2
 import time
+from typing import Tuple
+from playsound import playsound
 from dataclasses import dataclass
 from collections import OrderedDict
-from typing import Tuple
 
 @dataclass
 class JuggleDetails:
@@ -84,12 +85,18 @@ class HeightChecker:
             if time_since_drawn > 0.5:
                 points_to_remove.append(object_id)
             else:
-                draw_color = (0, 255, 0) if recorded_point.is_successful else (255, 0, 0)
+                draw_color = (0, 255, 0) if recorded_point.is_successful else (0, 0, 255)
                 cv2.circle(frame, recorded_point.centroid, 4, draw_color, -1)
         
         # Remove points that have already been drawn for a while
         for id in points_to_remove:
             del self.drawn_height_points[id]
+
+    def draw_success_counters(self, frame):
+        # Calculate success percentage and check that there's no div by 0
+        success_percentage = self.successes / self.failures * 100 if self.failures else 0
+        text = f"{int(success_percentage)}% = {self.successes} / {self.failures + self.successes}"
+        cv2.putText(frame, text, (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (132, 224, 190), 2)
 
     def update(self, frame, current_balls: OrderedDict):
         """ Main function that should be called every fram to check whether 
@@ -109,6 +116,13 @@ class HeightChecker:
                     self.recorded_balls[object_id].is_falling = True
 
                     is_successful = self.is_successful_throw(centroid)
+                    if is_successful:
+                        self.successes += 1
+                        playsound('correct.wav')
+                    else:
+                        self.failures += 1
+                        playsound('incorrect.wav')
+
                     # Record a draw point
                     self.drawn_height_points[object_id] = DrawPoint(
                         tuple(centroid), is_successful, starting_time = time.time()
@@ -122,3 +136,4 @@ class HeightChecker:
                 self.recorded_balls[object_id] = JuggleDetails(max_height = centroid[1])
 
         self.draw_recorded_points(frame)
+        self.draw_success_counters(frame)
