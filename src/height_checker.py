@@ -1,6 +1,6 @@
 import cv2
 import time
-from typing import Tuple
+from typing import Tuple, OrderedDict
 from playsound import playsound
 from dataclasses import dataclass
 from collections import OrderedDict
@@ -9,8 +9,13 @@ from collections import OrderedDict
 class JuggleDetails:
     """ Used to record how high a juggling ball is thrown and whether it started
         falling down"""
-    max_height: int
+    centroid: Tuple[int, int] # X, Y coordinates of the juggling ball at its heighest point
+    starting_time: float
     is_falling: bool = False
+    
+    @property
+    def max_height(self) -> int:
+        return self.centroid[1]
 
 @dataclass
 class DrawPoint:
@@ -25,10 +30,11 @@ class HeightChecker:
     """ This class is used to define a boundary inside which the tracked
         objects that are travelling upwards should stop"""
 
-    def __init__(self, starting_y, starting_height, frame_width):
+    def __init__(self, starting_y, starting_height, frame_width, reacquisition_time):
         self.drawn_height_points: OrderedDict[int, DrawPoint] = OrderedDict()
         self.successes = 0
         self.failures = 0
+        self.reacquisition_time = reacquisition_time
 
         # Starting y coordinate for drawing the height boundary box
         self.start_y = int(starting_y)
@@ -61,18 +67,19 @@ class HeightChecker:
         else:
             self.length = 0
 
-    def is_successful_throw(self, centroid: Tuple[int, int]):
+    def is_successful_throw(self, ball_height: int):
         """ Returns true if the ball's max height was inside a boundary
             box (success) and false if its max height was outside the
             boundary box (failure) """
         # Check if max height is inside the boundary box
-        if centroid[1] >= self.start_y and centroid[1] <= (self.start_y + self.length):
+        if ball_height >= self.start_y and ball_height <= (self.start_y + self.length):
             return True
         # Or outside it
         else:
             return False
 
     def draw_recorded_points(self, frame):
+        """ Draws a green/red dot for successful/unsuccesful throw """
         # Keep track of which previously drawn points to not draw anymore
         points_to_remove = []
         
@@ -93,19 +100,50 @@ class HeightChecker:
             del self.drawn_height_points[id]
 
     def draw_success_counters(self, frame):
+        """ Draws a counter and a percentage of successful throws """
         # Calculate success percentage and check that there's no div by 0
         success_percentage = self.successes / self.failures * 100 if self.failures else 0
         text = f"{int(success_percentage)}% = {self.successes} / {self.failures + self.successes}"
         cv2.putText(frame, text, (0, 15), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (132, 224, 190), 2)
 
+    def evaluate_height(self, ball_id, recorded_ball: JuggleDetails):
+        """ Checks whether the ball was thrown to the correct height and
+            creates a successful/unsuccessful draw point """
+        is_successful = self.is_successful_throw(recorded_ball.max_height)
+        if is_successful:
+            self.successes += 1
+            #playsound('correct.wav')
+        else:
+            self.failures += 1
+            #playsound('incorrect.wav')
+
+        # Record a draw point
+        self.drawn_height_points[ball_id] = DrawPoint(
+            tuple(recorded_ball.centroid), is_successful, starting_time = time.time()
+        )
+
+    def check_for_expired_balls(self, current_balls: OrderedDict):
+        """ Check for balls that 'expired' past their reacquisition time.
+            This means it is too late to reacquire it and can be considered
+            As if it reached its max height """
+        for ball_id, recorded_ball in self.recorded_balls.items():
+            if not recorded_ball.is_falling:
+                time_since_thrown = time.time() - recorded_ball.starting_time
+
+                # Ball has 'expired'
+                if time_since_thrown > self.reacquisition_time:
+                    recorded_ball.is_falling = True
+                    self.evaluate_height(ball_id, recorded_ball)
+
+
     def update(self, frame, current_balls: OrderedDict):
-        """ Main function that should be called every fram to check whether 
+        """ Main function that is called every frame to check whether 
             balls are falling and draw success/fail points """
         # Loop through balls and check if they started falling
-        for object_id, centroid in current_balls.items():
+        for ball_id, centroid in current_balls.items():
             # If the ball was previously recorded
-            if object_id in self.recorded_balls:
-                previously_recorded_details = self.recorded_balls[object_id]
+            if ball_id in self.recorded_balls:
+                previously_recorded_details = self.recorded_balls[ball_id]
 
                 # Check if the ball is lower than previously recorded. This means 
                 # that the ball has reached has reached its max height in the 
@@ -113,27 +151,21 @@ class HeightChecker:
                 # NOTE: if the ball is closer to the ground, it's y-coord number will be HIGHER
                 if (not previously_recorded_details.is_falling 
                         and previously_recorded_details.max_height < centroid[1]):
-                    self.recorded_balls[object_id].is_falling = True
+                    self.recorded_balls[ball_id].is_falling = True
+                    self.evaluate_height(ball_id, self.recorded_balls[ball_id])
 
-                    is_successful = self.is_successful_throw(centroid)
-                    if is_successful:
-                        self.successes += 1
-                        playsound('correct.wav')
-                    else:
-                        self.failures += 1
-                        playsound('incorrect.wav')
-
-                    # Record a draw point
-                    self.drawn_height_points[object_id] = DrawPoint(
-                        tuple(centroid), is_successful, starting_time = time.time()
-                    )
-
-                # Record the balls current height
+                # The ball is still travelling upwards
                 else:
-                    self.recorded_balls[object_id].max_height = centroid[1]
-            # If the ball hasnt been previously detected, record its height
+                    self.recorded_balls[ball_id].centroid = centroid
+            # If the ball hasnt been previously detected, keep a record of it for the future
             else:
-                self.recorded_balls[object_id] = JuggleDetails(max_height = centroid[1])
+                new_recorded_ball = JuggleDetails(
+                    centroid = centroid, 
+                    starting_time = time.time()
+                )
+                self.recorded_balls[ball_id] = new_recorded_ball
+
+        self.check_for_expired_balls(current_balls)
 
         self.draw_recorded_points(frame)
         self.draw_success_counters(frame)

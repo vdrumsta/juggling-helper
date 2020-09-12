@@ -12,7 +12,7 @@ RESIZED_WIDTH = int(FRAME_WIDTH * RESIZE_SCALAR)
 RESIZED_HEIGHT = int(FRAME_HEIGHT * RESIZE_SCALAR)
 TRACKER_REACQUISITION_RANGE = int(150 * RESIZE_SCALAR)
 TRACKER_REACQUISITION_TIME = 0.2
-DEBUG_MODE = False
+DEBUG_MODE = True
 
 # Start the stopwatch / counter  
 t1_start = process_time() 
@@ -23,7 +23,7 @@ ct = CentroidTracker(TRACKER_REACQUISITION_RANGE, TRACKER_REACQUISITION_TIME)
 # Initialize the height checker and desired starting height boundary
 starting_y = FRAME_HEIGHT / 4 * RESIZE_SCALAR
 starting_height = FRAME_HEIGHT / 10 * RESIZE_SCALAR
-height_checker = HeightChecker(starting_y, starting_height, RESIZED_WIDTH)
+height_checker = HeightChecker(starting_y, starting_height, RESIZED_WIDTH, TRACKER_REACQUISITION_TIME)
 
 # Load Yolo
 net = cv2.dnn.readNet("yolov3_training_last.weights", "yolov3_testing.cfg")
