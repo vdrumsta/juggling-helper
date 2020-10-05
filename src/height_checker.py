@@ -1,9 +1,9 @@
 import cv2
 import time
 from typing import Tuple, OrderedDict
-from playsound import playsound
 from dataclasses import dataclass
 from collections import OrderedDict
+from audio_manager import SoundFactory, Sound
 
 @dataclass
 class JuggleDetails:
@@ -35,6 +35,11 @@ class HeightChecker:
         self.successes = 0
         self.failures = 0
         self.reacquisition_time = reacquisition_time
+
+        # Create success/failure sounds
+        sound_factory = SoundFactory()
+        self.success_sound = sound_factory.create_audio(seconds = 0.1, frequency = 1000)
+        self.failure_sound = sound_factory.create_audio(seconds = 0.1, frequency = 300)
 
         # Starting y coordinate for drawing the height boundary box
         self.start_y = int(starting_y)
@@ -112,10 +117,10 @@ class HeightChecker:
         is_successful = self.is_successful_throw(recorded_ball.max_height)
         if is_successful:
             self.successes += 1
-            #playsound('correct.wav')
+            self.success_sound.play()
         else:
             self.failures += 1
-            #playsound('incorrect.wav')
+            self.failure_sound.play()
 
         # Record a draw point
         self.drawn_height_points[ball_id] = DrawPoint(
