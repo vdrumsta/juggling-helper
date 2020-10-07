@@ -57,7 +57,7 @@ class HeightChecker:
         end_y = self.start_y + self.length
         
         # setting start_x as -1 prevents the left edge line from being drawn
-        cv2.rectangle(frame, (-1, self.start_y), (self.frame_width, end_y), (255, 255, 255), 1)
+        cv2.rectangle(frame, (-1, self.start_y), (self.frame_width, end_y), (0, 255, 0), 1)
 
     def change_start_y(self, amount: int = 2):
         """ Raise or lower height boundary"""

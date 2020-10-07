@@ -1,18 +1,25 @@
 from time import process_time
+
 import cv2
 import numpy as np
+
+from config_manager import ConfigManager
 from height_checker import HeightChecker
 from centroid_tracker import CentroidTracker
 
+# Retrieve command line arguments
+conf = ConfigManager()
+args = conf.get_args()
+
 # Constants
-RESIZE_SCALAR = 0.4
+RESIZE_SCALAR = args.scale
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
 RESIZED_WIDTH = int(FRAME_WIDTH * RESIZE_SCALAR)
 RESIZED_HEIGHT = int(FRAME_HEIGHT * RESIZE_SCALAR)
-TRACKER_REACQUISITION_RANGE = int(150 * RESIZE_SCALAR)
-TRACKER_REACQUISITION_TIME = 0.2
-DEBUG_MODE = True
+TRACKER_REACQUISITION_RANGE = int(args.range * RESIZE_SCALAR)
+TRACKER_REACQUISITION_TIME = args.tracktime
+DEBUG_MODE = args.debug
 
 # Start the stopwatch / counter  
 t1_start = process_time() 
@@ -71,9 +78,9 @@ while True:
             scores = detection[5:]  # Element at index 5 contains confidence
             class_id = np.argmax(scores) # Pick most confident label
             confidence = scores[class_id]
+            
             if confidence > 0.3:
                 # Object detected
-                #print(class_id)
                 center_x = int(detection[0] * width)
                 center_y = int(detection[1] * height)
                 w = int(detection[2] * width)
@@ -111,7 +118,7 @@ while True:
             text = "ID {}".format(objectID)
             cv2.putText(frame, text, (centroid[0] - 10, centroid[1] - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-            cv2.circle(frame, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
+            #cv2.circle(frame, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
 
     # Detect any user input
     pressed_key = cv2.waitKey(1)
