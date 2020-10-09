@@ -1,4 +1,5 @@
 import argparse
+import sys
 from configparser import ConfigParser
 from dataclasses import dataclass
 
@@ -33,15 +34,15 @@ class ConfigManager:
         self.parse_args()
 
         # Read settings from ini file
-        config = ConfigParser()
+        self._config = ConfigParser()
         # User either requested to reset settings or couldn't read config.ini file
-        if self._args.reset or not config.read('config.ini'):
+        if self._args.reset or not self._config.read('config.ini'):
             self._settings = ConfigManager.default_settings
         else:
-            frame_width = config.get('settings', 'frame_width')
-            frame_height = config.get('settings', 'frame_height')
-            success_area_y = config.get('settings', 'success_area_y')
-            success_area_length = config.get('settings', 'success_area_length')
+            frame_width = int(self._config.get('settings', 'frame_width'))
+            frame_height = int(self._config.get('settings', 'frame_height'))
+            success_area_y = int(self._config.get('settings', 'success_area_y'))
+            success_area_length = int(self._config.get('settings', 'success_area_length'))
 
             self._settings = UserSettings(
                 scale = self._args.scale,
@@ -69,3 +70,16 @@ class ConfigManager:
     def get_settings(self):
         """ Return command line arguments """
         return self._settings
+
+    def set_settings(self, settings: UserSettings):
+        """ Write user settings to config.ini file """
+        if not self._config.has_section('settings'):
+            self._config.add_section('settings')
+
+        self._config.set('settings', 'frame_width', str(settings.frame_width))
+        self._config.set('settings', 'frame_height', str(settings.frame_height))
+        self._config.set('settings', 'success_area_y', str(settings.success_area_y))
+        self._config.set('settings', 'success_area_length', str(settings.success_area_length))
+
+        with open('config.ini', 'w') as f: 
+            self._config.write(f)

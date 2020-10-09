@@ -30,7 +30,7 @@ class HeightChecker:
     """ This class is used to define a boundary inside which the tracked
         objects that are travelling upwards should stop"""
 
-    def __init__(self, starting_y, starting_height, frame_width, reacquisition_time):
+    def __init__(self, success_area_y, success_area_length, frame_width, reacquisition_time):
         self.drawn_height_points: OrderedDict[int, DrawPoint] = OrderedDict()
         self.successes = 0
         self.failures = 0
@@ -42,9 +42,9 @@ class HeightChecker:
         self.failure_sound = sound_factory.create_audio(seconds = 0.1, frequency = 300)
 
         # Starting y coordinate for drawing the height boundary box
-        self.start_y = int(starting_y)
+        self.start_y = int(success_area_y)
         # The vertical length of the boundary box
-        self.length = int(starting_height)
+        self.length = int(success_area_length)
         # The horizontal width of the boundary box
         self.frame_width = int(frame_width)
         # All the tracked balls will be held here to keep track of whether
@@ -59,7 +59,7 @@ class HeightChecker:
         # setting start_x as -1 prevents the left edge line from being drawn
         cv2.rectangle(frame, (-1, self.start_y), (self.frame_width, end_y), (0, 255, 0), 1)
 
-    def change_start_y(self, amount: int = 2):
+    def change_boundary_y_pos(self, amount: int = 2):
         """ Raise or lower height boundary"""
         self.start_y += amount
 

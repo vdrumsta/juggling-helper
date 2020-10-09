@@ -30,7 +30,12 @@ ct = CentroidTracker(TRACKER_REACQUISITION_RANGE, TRACKER_REACQUISITION_TIME)
 # Initialize the height checker and desired starting height boundary
 starting_y = FRAME_HEIGHT / 4 * RESIZE_SCALAR
 starting_height = FRAME_HEIGHT / 10 * RESIZE_SCALAR
-height_checker = HeightChecker(starting_y, starting_height, RESIZED_WIDTH, TRACKER_REACQUISITION_TIME)
+height_checker = HeightChecker(
+    success_area_y = settings.success_area_y, 
+    success_area_length = settings.success_area_length, 
+    frame_width = RESIZED_WIDTH, 
+    reacquisition_time = TRACKER_REACQUISITION_TIME
+)
 
 # Load Yolo
 net = cv2.dnn.readNet("yolov3_training_last.weights", "yolov3_testing.cfg")
@@ -125,18 +130,22 @@ while True:
 
     # Raise height checker's height boundary
     if pressed_key & 0xFF == ord('w'):
-        height_checker.change_start_y(-2)
+        settings.success_area_y -= 2
+        height_checker.change_boundary_y_pos(-2)
 
     # Lower height checker's height boundary
     if pressed_key & 0xFF == ord('s'):
-        height_checker.change_start_y(2)
+        settings.success_area_y += 2
+        height_checker.change_boundary_y_pos(2)
 
     # Increase height checker's boundary length
     if pressed_key & 0xFF == ord('d'):
+        settings.success_area_length += 2
         height_checker.change_boundary_length(2)
 
     # Decrease height checker's boundary length
     if pressed_key & 0xFF == ord('a'):
+        settings.success_area_length -= 2
         height_checker.change_boundary_length(-2)
 
     # Draw desired height boundary
@@ -163,3 +172,6 @@ while True:
 cap.release()
 capture_out.release()
 cv2.destroyAllWindows()
+
+# Write user settings to a file
+conf.set_settings(settings)
