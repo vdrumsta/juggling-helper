@@ -7,19 +7,19 @@ from config_manager import ConfigManager
 from height_checker import HeightChecker
 from centroid_tracker import CentroidTracker
 
-# Retrieve command line arguments
+# Retrieve user configurable settings
 conf = ConfigManager()
-args = conf.get_args()
+settings = conf.get_settings()
 
 # Constants
-RESIZE_SCALAR = args.scale
-FRAME_WIDTH = 640
-FRAME_HEIGHT = 480
+RESIZE_SCALAR = settings.scale
+FRAME_WIDTH = settings.frame_width
+FRAME_HEIGHT = settings.frame_height
 RESIZED_WIDTH = int(FRAME_WIDTH * RESIZE_SCALAR)
 RESIZED_HEIGHT = int(FRAME_HEIGHT * RESIZE_SCALAR)
-TRACKER_REACQUISITION_RANGE = int(args.range * RESIZE_SCALAR)
-TRACKER_REACQUISITION_TIME = args.tracktime
-DEBUG_MODE = args.debug
+TRACKER_REACQUISITION_RANGE = int(settings.trackrange * RESIZE_SCALAR)
+TRACKER_REACQUISITION_TIME = settings.tracktime
+DEBUG_MODE = settings.debug
 
 # Start the stopwatch / counter  
 t1_start = process_time() 
@@ -78,7 +78,7 @@ while True:
             scores = detection[5:]  # Element at index 5 contains confidence
             class_id = np.argmax(scores) # Pick most confident label
             confidence = scores[class_id]
-            
+
             if confidence > 0.3:
                 # Object detected
                 center_x = int(detection[0] * width)
