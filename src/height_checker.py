@@ -51,6 +51,12 @@ class HeightChecker:
         # the ball is travelling upwards or downwards
         self.recorded_balls: OrderedDict[int, JuggleDetails] = OrderedDict()
 
+    def get_successes(self) -> int:
+        return self.successes
+
+    def get_failures(self) -> int:
+        return self.failures
+
     def draw_boundary(self, frame):
         """ Draw a rectangle that represents where juggling balls 
             should be at their heighest"""

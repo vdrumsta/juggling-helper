@@ -7,6 +7,8 @@ from config_manager import ConfigManager
 from height_checker import HeightChecker
 from centroid_tracker import CentroidTracker
 
+print("Loading... This could take a minute.")
+
 # Retrieve user configurable settings
 conf = ConfigManager()
 settings = conf.get_settings()
@@ -175,3 +177,9 @@ cv2.destroyAllWindows()
 
 # Write user settings to a file
 conf.set_settings(settings)
+
+# Append use statistics to a file
+with open('statistics.txt', 'a') as stat_file:
+    # Format statistic in a csv format i.e. successes,failures
+    csv_stats = str(height_checker.get_successes()) + "," + str(height_checker.get_failures()) + "\n"
+    stat_file.write(csv_stats)
