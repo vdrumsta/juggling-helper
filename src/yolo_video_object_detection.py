@@ -27,7 +27,7 @@ DEBUG_MODE = settings.debug
 t1_start = process_time() 
 
 # Initialize our centroid tracker and frame dimensions
-ct = CentroidTracker(TRACKER_REACQUISITION_RANGE, TRACKER_REACQUISITION_TIME)
+ct = CentroidTracker(settings.trackrange, TRACKER_REACQUISITION_TIME)
 
 # Initialize the height checker and desired starting height boundary
 starting_y = FRAME_HEIGHT / 4 * RESIZE_SCALAR
@@ -36,7 +36,8 @@ height_checker = HeightChecker(
     success_area_y = settings.success_area_y, 
     success_area_length = settings.success_area_length, 
     frame_width = RESIZED_WIDTH, 
-    reacquisition_time = TRACKER_REACQUISITION_TIME
+    reacquisition_time = TRACKER_REACQUISITION_TIME,
+    reacquisition_range = TRACKER_REACQUISITION_RANGE
 )
 
 # Load Yolo

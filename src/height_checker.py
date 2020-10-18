@@ -30,11 +30,12 @@ class HeightChecker:
     """ This class is used to define a boundary inside which the tracked
         objects that are travelling upwards should stop"""
 
-    def __init__(self, success_area_y, success_area_length, frame_width, reacquisition_time):
+    def __init__(self, success_area_y, success_area_length, frame_width, reacquisition_time, reacquisition_range):
         self.drawn_height_points: OrderedDict[int, DrawPoint] = OrderedDict()
         self.successes = 0
         self.failures = 0
         self.reacquisition_time = reacquisition_time
+        self.reacquisition_range = reacquisition_range
 
         # Create success/failure sounds
         sound_factory = SoundFactory()
@@ -105,6 +106,7 @@ class HeightChecker:
             else:
                 draw_color = (0, 255, 0) if recorded_point.is_successful else (0, 0, 255)
                 cv2.circle(frame, recorded_point.centroid, 4, draw_color, -1)
+                cv2.circle(frame, recorded_point.centroid, self.reacquisition_range, draw_color, 1)
         
         # Remove points that have already been drawn for a while
         for id in points_to_remove:

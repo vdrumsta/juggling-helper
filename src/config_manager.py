@@ -61,7 +61,7 @@ class ConfigManager:
         parser = argparse.ArgumentParser(description="Record the max height at which juggling balls are thrown")
         parser.add_argument('-s', '--scale', type=float, default=0.4, metavar="", help="Resize the window size")
         parser.add_argument('-d', '--debug', action='store_true', help="Enable printing of FPS and draw squares around balls")
-        parser.add_argument('-t', '--tracktime', type=float, default=0.2, metavar="", help="Max time to reacquire a tracked ball")
+        parser.add_argument('-t', '--tracktime', type=float, default=0.4, metavar="", help="Max time to reacquire a tracked ball")
         parser.add_argument('-r', '--trackrange', type=int, default=150, metavar="", help="Max range to reacquire a tracked ball")
         parser.add_argument('--reset', action='store_true', help="Reset settings to their default parameters")
         

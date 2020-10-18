@@ -41,11 +41,16 @@ class CentroidTracker():
         if len(rects) == 0:
             # Loop over disappeared objects
             for objectID in list(self.disappeared.keys()):
-                # If we have reached a maximum time that an object can stay
-                # disappeared for, then deregister it
-                timeSinceDisappeared = time.time() - self.disappeared[objectID]
-                if timeSinceDisappeared > self.maxDisappearedTime:
-                    self.deregister(objectID)
+                # If the object was previously not disappeared, mark it
+                # as disappeared
+                if self.disappeared[objectID] == 0:
+                    self.disappeared[objectID] = time.time()
+                else:
+                    # If we have reached a maximum time that an object can stay
+                    # disappeared for, then deregister it
+                    timeSinceDisappeared = time.time() - self.disappeared[objectID]
+                    if timeSinceDisappeared > self.maxDisappearedTime:
+                        self.deregister(objectID)
 
             # return early as there are no centroids or tracking info
             # to update
@@ -83,17 +88,21 @@ class CentroidTracker():
 
             # Keep a track of indexes to remove from the D array
             rowsToRemove = []
-            # Filter out results that are outside centroid's requisition range
+            # Filter out results that are outside of object centroid's requisition range
             for i, row in enumerate(D):
-                # If the centroid has disappeared before calculate its time
+                timeSinceDisappeared = 0
+
+                # If the centroid has disappeared before, calculate its time
                 # since it disappeared
                 if self.disappeared[objectIDs[i]] > 0:
                     timeSinceDisappeared = time.time() - self.disappeared[objectIDs[i]]
-                else:
-                    timeSinceDisappeared = 0
+                
+                reacquisitionDistScalar = 1
+                falloff_reacquisition = False
                 
                 # Calculate how much to scale the new reacquisition distance
-                reacquisitionDistScalar = 1 - (timeSinceDisappeared / self.maxDisappearedTime)
+                if falloff_reacquisition:
+                    reacquisitionDistScalar = 1 - (timeSinceDisappeared / self.maxDisappearedTime)
                 # If less than 0, then the object wont be tracked anymore
                 if reacquisitionDistScalar <= 0:
                     rowsToRemove.append(i)
@@ -109,7 +118,7 @@ class CentroidTracker():
                     col = float('inf') if col > currentReacquisitionDist else col
 
                 isAllInfs = True
-                # If the entire row is made up of infs, remove the row
+                # If the entire row is made up of infinities, remove the row
                 for col in row:
                     if not col == float('inf'):
                         isAllInfs = False
