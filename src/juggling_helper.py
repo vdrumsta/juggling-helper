@@ -1,4 +1,4 @@
-from time import process_time
+from time import process_time, strftime
 
 import cv2
 import numpy as np
@@ -57,9 +57,14 @@ output_layers = [layer_names[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 
 # Capture live camera
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)    # Capture first webcam
+
+# Record a video of the capture
+ret, frame = cap.read() # If there is a video feed, ret is true
+frame = cv2.resize(frame, None, fx=RESIZE_SCALAR, fy=RESIZE_SCALAR)
+height, width, channels = frame.shape # cv2 resizes to closest compatible resolution
 fourcc = cv2.VideoWriter_fourcc(*'XVID')    # Video encoder
-capture_out = cv2.VideoWriter('output.avi', fourcc, 20.0, 
-    (RESIZED_WIDTH, RESIZED_HEIGHT))    # Encoded video properties
+pathname = "../captures/capture_" + strftime("%Y%m%d-%H%M%S") + ".avi"
+capture_out = cv2.VideoWriter(pathname, fourcc, 24, (width, height)) # Encoded video properties
 
 while True:
     frame_start_time = process_time()
@@ -152,11 +157,10 @@ while True:
         settings.success_area_length -= 2
         hud.change_boundary_length(-2)
 
-    # Draw desired height boundary
+    # Update UI
     hud.draw_boundary(frame)
-
-    # TODO: draw success counters and ball points
-    hud.update_ui(frame, objects)
+    hud.draw_ball_points(frame, objects)
+    hud.draw_success_counters(frame)
 
     # Show frame with boxes drawn
     capture_out.write(frame)
@@ -170,7 +174,7 @@ while True:
         # Calculate FPS and print it out
         frame_time = process_time() - frame_start_time
         frames_per_second = int(1 / frame_time) if frame_time else 1 # div by 0 check
-        #print("FPS = ", frames_per_second)
+        print("FPS = ", frames_per_second)
 
 # Clean up
 cap.release()
@@ -180,8 +184,7 @@ cv2.destroyAllWindows()
 # Write user settings to a file
 conf.set_settings(settings)
 
-# Append use statistics to a file
-#with open('statistics.txt', 'a') as stat_file:
-    # TODO: Format statistic in a csv format i.e. successes,failures
-    #csv_stats = str(height_checker.get_successes()) + "," + str(height_checker.get_failures()) + "\n"
-    #stat_file.write(csv_stats)
+# Append use statistics to a file in a Success,Failure format
+with open('statistics.txt', 'a') as stat_file:
+    csv_stats = str(hud.get_successes()) + "," + str(hud.get_failures()) + "\n"
+    stat_file.write(csv_stats)

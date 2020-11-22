@@ -44,7 +44,7 @@ class HUDController:
         # The horizontal width of the boundary box
         self.frame_width = int(frame_width)
 
-    def update_ui(self, frame, tracked_balls):
+    def draw_ball_points(self, frame, tracked_balls):
         """ Record all newly tracked balls and if the ball started falling,
             then start drawing its max point reached.
             Also draw success/fail statistics and max height box
