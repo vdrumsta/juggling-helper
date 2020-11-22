@@ -42,7 +42,7 @@ starting_y = FRAME_HEIGHT / 4 * RESIZE_SCALAR
 starting_height = FRAME_HEIGHT / 10 * RESIZE_SCALAR
 
 # Load Yolo
-net = cv2.dnn.readNet("yolov3_training_last.weights", "yolov3_testing.cfg")
+net = cv2.dnn.readNet("../yolo/yolov3_training.weights", "../yolo/yolov3_config.cfg")
 
 # Enable GPU processing
 net.setPreferableBackend(cv2.dnn.DNN_BACKEND_CUDA)
@@ -185,6 +185,6 @@ cv2.destroyAllWindows()
 conf.set_settings(settings)
 
 # Append use statistics to a file in a Success,Failure format
-with open('statistics.txt', 'a') as stat_file:
+with open('../statistics.csv', 'a') as stat_file:
     csv_stats = str(hud.get_successes()) + "," + str(hud.get_failures()) + "\n"
     stat_file.write(csv_stats)

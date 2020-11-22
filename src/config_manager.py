@@ -36,7 +36,7 @@ class ConfigManager:
         # Read settings from ini file
         self._config = ConfigParser()
         # User either requested to reset settings or couldn't read config.ini file
-        if self._args.reset or not self._config.read('config.ini'):
+        if self._args.reset or not self._config.read('../config.ini'):
             self._settings = ConfigManager.default_settings
         else:
             frame_width = int(self._config.get('settings', 'frame_width'))
@@ -81,5 +81,5 @@ class ConfigManager:
         self._config.set('settings', 'success_area_y', str(settings.success_area_y))
         self._config.set('settings', 'success_area_length', str(settings.success_area_length))
 
-        with open('config.ini', 'w') as f: 
+        with open('../config.ini', 'w') as f: 
             self._config.write(f)
