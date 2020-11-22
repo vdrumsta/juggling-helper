@@ -1,18 +1,31 @@
-# import the necessary packages
 import time
-from scipy.spatial import distance as dist
 from collections import OrderedDict
+from typing import Tuple, OrderedDict, List
+from dataclasses import dataclass
+
 import numpy as np
+from scipy.spatial import distance as dist
+
+from height_checker import MaxHeightChecker
+
+@dataclass
+class JuggleDetails:
+    """ Used to record how high a juggling ball is thrown and whether it started
+        falling down"""
+    centroid: Tuple[int, int] # X, Y coordinates of the juggling ball's current point
+    max_height_centroid: Tuple[int, int] # X, Y coordinates of the juggling ball at its heighest point
+    last_seen_timestamp: float
+    is_falling: bool = False
+
+    @property
+    def max_height(self) -> int:
+        return self.max_height_centroid[1]
 
 class CentroidTracker():
+    """ Used to identify and track the same balls between frames """
     def __init__(self, reacquisitionDist = 50, maxDisappearedTime=0.2):
-        # initialize the next unique object ID along with two ordered
-        # dictionaries used to keep track of mapping a given object
-        # ID to its centroid and number of consecutive frames it has
-        # been marked as "disappeared", respectively
         self.nextObjectID = 0
-        self.objects = OrderedDict()
-        self.disappeared = OrderedDict()
+        self.objects: OrderedDict[int, JuggleDetails] = OrderedDict()
 
         # Store the time that a given object is allowed to be marked 
         # as "disappeared" until we need to deregister the object from tracking
@@ -23,62 +36,85 @@ class CentroidTracker():
         self.reacquisitionDist = reacquisitionDist
 
     def register(self, centroid):
-        # when registering an object we use the next available object
+        # When registering an object we use the next available object
         # ID to store the centroid
-        self.objects[self.nextObjectID] = centroid
-        self.disappeared[self.nextObjectID] = 0
+        self.objects[self.nextObjectID] = JuggleDetails(
+            centroid = tuple(centroid),
+            max_height_centroid = tuple(centroid),
+            last_seen_timestamp = time.time()
+        )
         self.nextObjectID += 1
 
-    def deregister(self, objectID):
-        # to deregister an object ID we delete the object ID from
-        # both of our respective dictionaries
-        del self.objects[objectID]
-        del self.disappeared[objectID]
+    def remove_disappeared_balls(self):
+        """ Go through all the currently tracked objects and remove the ones
+            that have not been seen for more than allowed time
+        """
+        # Build a list of objects that havent disappeared for too long
+        new_objects_dict: OrderedDict[int, JuggleDetails] = OrderedDict()
+
+        for ball_key, ball_value in self.objects.items():
+            # Check if we have reached a maximum time that an object can stay
+            # disappeared for, and if we did then deregister it
+            timeSinceDisappeared = time.time() - ball_value.last_seen_timestamp
+            if timeSinceDisappeared < self.maxDisappearedTime:
+                new_objects_dict[ball_key] = ball_value
+
+        # Override objects dict with a dict that doesnt had disappeared balls
+        self.objects = new_objects_dict
+    
+    def check_if_falling(self, old_centroid, new_centroid):
+        """ Check if the ball is lower than previously recorded. This means 
+            that the ball has reached has reached its max height in the 
+            previous frame. Returns true if the balls is falling.
+        """
+        # NOTE: if the ball is closer to the ground, it's y-coord number will be HIGHER
+        return old_centroid[1] < new_centroid[1]
+
+    def set_objects_centroid(self, objectID: int, centroid: Tuple[int, int]):
+        """ Set the objects current centroid position and update
+            the object's max height centroid if the new position
+            is heigher than the previous max height centroid
+        """
+        self.objects[objectID].centroid = centroid
+
+        if (centroid[1] < self.objects[objectID].max_height_centroid[1]):
+            self.objects[objectID].max_height_centroid = centroid
+        
 
     def update(self, rects):
-        # check to see if the list of input bounding box rectangles
+        self.remove_disappeared_balls()
+
+        # Check to see if the list of input bounding box rectangles
         # is empty
         if len(rects) == 0:
-            # Loop over disappeared objects
-            for objectID in list(self.disappeared.keys()):
-                # If the object was previously not disappeared, mark it
-                # as disappeared
-                if self.disappeared[objectID] == 0:
-                    self.disappeared[objectID] = time.time()
-                else:
-                    # If we have reached a maximum time that an object can stay
-                    # disappeared for, then deregister it
-                    timeSinceDisappeared = time.time() - self.disappeared[objectID]
-                    if timeSinceDisappeared > self.maxDisappearedTime:
-                        self.deregister(objectID)
-
-            # return early as there are no centroids or tracking info
+            # Return early as there are no centroids or tracking info
             # to update
             return self.objects
 
-        # initialize an array of input centroids for the current frame
+        # Initialize an array of input centroids for the current frame
         inputCentroids = np.zeros((len(rects), 2), dtype="int")
 
-        # loop over the bounding box rectangles
+        # Loop over the bounding box rectangles
         for (i, (startX, startY, endX, endY)) in enumerate(rects):
-            # use the bounding box coordinates to derive the centroid
+            # Use the bounding box coordinates to derive the centroid
             cX = int((startX + endX) / 2.0)
             cY = int((startY + endY) / 2.0)
             inputCentroids[i] = (cX, cY)
 
-        # if we are currently not tracking any objects take the input
+        # If we are currently not tracking any objects take the input
         # centroids and register each of them
         if len(self.objects) == 0:
             for i in range(0, len(inputCentroids)):
                 self.register(inputCentroids[i])
 
-        # otherwise, there are currently tracking objects so we need to
+        # Otherwise, there are currently tracking objects so we need to
         # try to match the input centroids to existing object
         # centroids
         else:
-            # grab the set of object IDs and corresponding centroids
+            # Grab the set of object IDs and corresponding centroids
             objectIDs = list(self.objects.keys())
-            objectCentroids = list(self.objects.values())
+            objectCentroids = [ball.centroid for ball in self.objects.values()]
+            objectFallingStates = [ball.is_falling for ball in self.objects.values()]
             
             # compute the distance between each pair of object
             # centroids and input centroids, respectively -- our
@@ -86,116 +122,96 @@ class CentroidTracker():
             # object centroid
             D = dist.cdist(np.array(objectCentroids), inputCentroids)
 
-            # Keep a track of indexes to remove from the D array
-            rowsToRemove = []
+            # Calculate the coordinate difference between the stored object
+            # centroids and input centroids. This will tell us whether an
+            # input centroid is above/below and left/right of the stored 
+            # object centroid
+            pos_diff = np.zeros(
+                (len(objectCentroids), len(inputCentroids)),
+                dtype=np.dtype((np.float32, (2,)))
+            )
+            for i, _ in enumerate(pos_diff):
+                for j, _ in enumerate(pos_diff[i]):
+                    pos_diff[i][j] = (
+                        objectCentroids[i][0] - inputCentroids[j][0],
+                        objectCentroids[i][1] - inputCentroids[j][1]
+                    )
+
             # Filter out results that are outside of object centroid's requisition range
             for i, row in enumerate(D):
-                timeSinceDisappeared = 0
-
-                # If the centroid has disappeared before, calculate its time
-                # since it disappeared
-                if self.disappeared[objectIDs[i]] > 0:
-                    timeSinceDisappeared = time.time() - self.disappeared[objectIDs[i]]
-                
-                reacquisitionDistScalar = 1
-                falloff_reacquisition = False
-                
-                # Calculate how much to scale the new reacquisition distance
-                if falloff_reacquisition:
-                    reacquisitionDistScalar = 1 - (timeSinceDisappeared / self.maxDisappearedTime)
-                # If less than 0, then the object wont be tracked anymore
-                if reacquisitionDistScalar <= 0:
-                    rowsToRemove.append(i)
-                    self.deregister(objectIDs[i])
-                    continue
-
-                currentReacquisitionDist = self.reacquisitionDist * reacquisitionDistScalar
-
                 # If any of the distances are grater than the currentReacquisitionDist
                 # then set their distance to infinity. This will make sure that we
                 # don't consider this distance for reacquisition
-                for col in row:
-                    col = float('inf') if col > currentReacquisitionDist else col
+                for j, col in enumerate(row):
+                    D[i][j] = float('inf') if col > self.reacquisitionDist else col
 
-                isAllInfs = True
-                # If the entire row is made up of infinities, remove the row
-                for col in row:
-                    if not col == float('inf'):
-                        isAllInfs = False
-                        break
+            # For the objects that are already falling, filter out the results
+            # where the input object is travelling up
+            for i, row in enumerate(D):
+                for j, col in enumerate(row):
+                    # If the ball is falling and the input centroid is above object
+                    # centroid set their distance to infinity. This will make sure that we
+                    # don't consider this distance for reacquisition
+                    # NOTE: if the ball is closer to the ground, 
+                    # pos_diff[i][j][1] will be positive
+                    if objectFallingStates[i] and (pos_diff[i][j][1] > 0):
+                        D[i][j] = float('inf')
 
-                if isAllInfs:
-                    rowsToRemove.append(i)
-
-            # Remove rows that will not be considered for reacquisition.
-            # We loop backwards so that we don't throw the the subsequent indexes
-            for rowToRemove in sorted(rowsToRemove, reverse=True):
-                del objectIDs[rowToRemove]
-                D = np.delete(D, rowToRemove, 0)
-
-            # in order to perform this matching we must (1) find the
+            # In order to perform this matching we must (1) find the
             # smallest value in each row and then (2) sort the row
             # indexes based on their minimum values so that the row
             # with the smallest value is at the *front* of the index
             # list
             rows = D.min(axis=1).argsort()
 
-            # next, we perform a similar process on the columns by
+            # Next, we perform a similar process on the columns by
             # finding the smallest value in each column and then
             # sorting using the previously computed row index list
             cols = D.argmin(axis=1)[rows]
 
-            # in order to determine if we need to update, register,
-            # or deregister an object we need to keep track of which
-            # of the rows and column indexes we have already examined
-            usedRows = set()
+            # In order to determine if we need to update or register
+            # centroids, we need to track the noes that we examined
             usedCols = set()
+            usedRows = set()
 
-            # loop over the combination of the (row, column) index
+            # Loop over the combination of the (row, column) index
             # tuples
             for (row, col) in zip(rows, cols):
-                # if we have already examined either the row or
+                # Nf we have already examined either the row or
                 # column value before, ignore it
-                # val
                 if row in usedRows or col in usedCols:
                     continue
 
-                # otherwise, grab the object ID for the current row,
-                # set its new centroid, and reset the disappeared
-                # counter
+                # TODO: Check if this is actually helping bug
+                # "Tracker reacquires balls that are outside of their range"
+                #
+                # If the row + col combination has the distance of infinity
+                # then ignore it as the object is outside of the
+                # reacquisition distance
+                if D[row][col] == float('inf'):
+                    continue
+
+                # Otherwise, grab the object ID for the current row, set its new
+                #  centroid, falling state, and reset the last seen timestamp
                 objectID = objectIDs[row]
-                self.objects[objectID] = inputCentroids[col]
-                self.disappeared[objectID] = 0
+                self.objects[objectID].is_falling = self.check_if_falling(
+                    self.objects[objectID].centroid, inputCentroids[col]
+                )
+                self.set_objects_centroid(objectID, centroid = tuple(inputCentroids[col]))
+                self.objects[objectID].last_seen_timestamp = time.time()
 
-                # indicate that we have examined each of the row and
+                # Indicate that we have examined each of the row and
                 # column indexes, respectively
-                usedRows.add(row)
                 usedCols.add(col)
+                usedRows.add(row)
 
-            # compute both the row and column index we have NOT yet
+            # Compute both the row and column index we have NOT yet
             # examined
-            unusedRows = set(range(0, D.shape[0])).difference(usedRows)
             unusedCols = set(range(0, D.shape[1])).difference(usedCols)
 
-            # in the event that the number of object centroids is
-            # equal or greater than the number of input centroids
-            # we need to check and see if some of these objects have
-            # potentially disappeared
-            if D.shape[0] >= D.shape[1]:
-                # loop over the unused row indexes
-                for row in unusedRows:
-                    # Grab the object ID for the corresponding row
-                    # index and note the time when it disappeared
-                    objectID = objectIDs[row]
-                    if self.disappeared[objectID] == 0:
-                        self.disappeared[objectID] = time.time()
+            # Register all unused input centroids
+            for col in unusedCols:
+                self.register(inputCentroids[col])
 
-            # otherwise, if the number of input centroids is greater
-            # than the number of existing object centroids we need to
-            # register each new input centroid as a trackable object
-            else:
-                for col in unusedCols:
-                    self.register(inputCentroids[col])
-
-        # return the set of trackable objects
+        # Return the set of tracked objects
         return self.objects

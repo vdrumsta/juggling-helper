@@ -4,8 +4,8 @@ import cv2
 import numpy as np
 
 from config_manager import ConfigManager
-from height_checker import HeightChecker
 from centroid_tracker import CentroidTracker
+from hud_controller import HUDController
 
 print("Loading... This could take a minute.")
 
@@ -26,19 +26,20 @@ DEBUG_MODE = settings.debug
 # Start the stopwatch / counter  
 t1_start = process_time() 
 
-# Initialize our centroid tracker and frame dimensions
-ct = CentroidTracker(settings.trackrange, TRACKER_REACQUISITION_TIME)
+# Initialize the heads up display controller which draws the UI on top of the frame
+hud = HUDController(
+    success_area_y=settings.success_area_y,
+    success_area_length=settings.success_area_length,
+    frame_width=RESIZED_WIDTH,
+    reacquisition_range=TRACKER_REACQUISITION_RANGE
+)
+
+# Initialize the centroid tracker which keeps track of the same balls between frames
+ct = CentroidTracker(TRACKER_REACQUISITION_RANGE, TRACKER_REACQUISITION_TIME)
 
 # Initialize the height checker and desired starting height boundary
 starting_y = FRAME_HEIGHT / 4 * RESIZE_SCALAR
 starting_height = FRAME_HEIGHT / 10 * RESIZE_SCALAR
-height_checker = HeightChecker(
-    success_area_y = settings.success_area_y, 
-    success_area_length = settings.success_area_length, 
-    frame_width = RESIZED_WIDTH, 
-    reacquisition_time = TRACKER_REACQUISITION_TIME,
-    reacquisition_range = TRACKER_REACQUISITION_RANGE
-)
 
 # Load Yolo
 net = cv2.dnn.readNet("yolov3_training_last.weights", "yolov3_testing.cfg")
@@ -120,11 +121,11 @@ while True:
 
     if DEBUG_MODE:
         # Loop over the tracked objects and draw their centroids
-        for (objectID, centroid) in objects.items():
+        for (objectID, ball) in objects.items():
             # Draw both the ID of the object and the centroid of the
             # object on the output frame
             text = "ID {}".format(objectID)
-            cv2.putText(frame, text, (centroid[0] - 10, centroid[1] - 10),
+            cv2.putText(frame, text, (ball.centroid[0] - 10, ball.centroid[1] - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
             #cv2.circle(frame, (centroid[0], centroid[1]), 4, (0, 255, 0), -1)
 
@@ -134,28 +135,28 @@ while True:
     # Raise height checker's height boundary
     if pressed_key & 0xFF == ord('w'):
         settings.success_area_y -= 2
-        height_checker.change_boundary_y_pos(-2)
+        hud.change_boundary_y_pos(-2)
 
     # Lower height checker's height boundary
     if pressed_key & 0xFF == ord('s'):
         settings.success_area_y += 2
-        height_checker.change_boundary_y_pos(2)
+        hud.change_boundary_y_pos(2)
 
     # Increase height checker's boundary length
     if pressed_key & 0xFF == ord('d'):
         settings.success_area_length += 2
-        height_checker.change_boundary_length(2)
+        hud.change_boundary_length(2)
 
     # Decrease height checker's boundary length
     if pressed_key & 0xFF == ord('a'):
         settings.success_area_length -= 2
-        height_checker.change_boundary_length(-2)
+        hud.change_boundary_length(-2)
 
     # Draw desired height boundary
-    height_checker.draw_boundary(frame)
+    hud.draw_boundary(frame)
 
-    # Check height
-    height_checker.update(frame, objects)
+    # TODO: draw success counters and ball points
+    hud.update_ui(frame, objects)
 
     # Show frame with boxes drawn
     capture_out.write(frame)
@@ -169,7 +170,7 @@ while True:
         # Calculate FPS and print it out
         frame_time = process_time() - frame_start_time
         frames_per_second = int(1 / frame_time) if frame_time else 1 # div by 0 check
-        print("FPS = ", frames_per_second)
+        #print("FPS = ", frames_per_second)
 
 # Clean up
 cap.release()
@@ -180,7 +181,7 @@ cv2.destroyAllWindows()
 conf.set_settings(settings)
 
 # Append use statistics to a file
-with open('statistics.txt', 'a') as stat_file:
-    # Format statistic in a csv format i.e. successes,failures
-    csv_stats = str(height_checker.get_successes()) + "," + str(height_checker.get_failures()) + "\n"
-    stat_file.write(csv_stats)
+#with open('statistics.txt', 'a') as stat_file:
+    # TODO: Format statistic in a csv format i.e. successes,failures
+    #csv_stats = str(height_checker.get_successes()) + "," + str(height_checker.get_failures()) + "\n"
+    #stat_file.write(csv_stats)
