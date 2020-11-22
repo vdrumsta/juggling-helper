@@ -5,7 +5,7 @@ When I started learning how to juggle, I was constantly reminded to try and thro
 
 This program uses your webcam to detect the juggling balls and mark their maximum height reached. It will then playback a sound to indicate if the ball was thrown at a correct height, letting you improve over time as you get feedback from the program.
 
-[![Juggling Helper Video](images/preview_short.gif)](https://www.youtube.com/watch?v=vroV6zRVIQU&feature=youtu.be)
+[![Juggling Helper Video](images/preview_short2.gif)](https://www.youtube.com/watch?v=vroV6zRVIQU&feature=youtu.be)
 
 Is this really a problem big enough to need a program for? Probably not, but I had trouble telling what height I was throwing the balls at when they were above my eye level (as shown in the picture below). Plus it gave me an excuse to learn a little bit more about machine learning and computer vision.
 
@@ -72,19 +72,19 @@ optional arguments:
 ## Roadmap
 
 There are a couple of areas I'd like to improve on to make this program detect objects more consistently and provide a smoother experience:
-	• Detection model
-		○ Doesn't detect motion blurred objects
-			§ Could apply a machine learning model on every frame to reduce motion blur
-				□ Might slow down detection
-			§ Train model more to work better with motion blurred objects
-		○ Try different training models
-			§ YoloLite
-				□ Faster, but could reduce detection rate
-		○ My trained model would likely have trouble working outside or in a different colored room as I trained it specifically inside my room
-			§ Could increase training sample size to include pictures from outside and different colored rooms
-	• Sound
-		○ When a sound plays, it halts the program a little bit
-            § Should play the sound on a different thread so as to not halt the rest of the program
+* Detection model
+	* Doesn't detect motion blurred objects
+		* Could apply a machine learning model on every frame to reduce motion blur
+			* Might slow down detection
+		* Train model more to work better with motion blurred objects
+	* Try different training models
+		* YoloLite
+			* Faster, but could reduce detection rate
+		* My trained model would likely have trouble working outside or in a different colored room as I trained it specifically inside my room
+			* Could increase training sample size to include pictures from outside and different colored rooms
+* Sound
+	* When a sound plays, it halts the program a little bit
+        * Should play the sound on a different thread so as to not halt the rest of the program
 
 
 <!-- CONTACT -->
