@@ -6,8 +6,6 @@ from dataclasses import dataclass
 import numpy as np
 from scipy.spatial import distance as dist
 
-from height_checker import MaxHeightChecker
-
 @dataclass
 class JuggleDetails:
     """ Used to record how high a juggling ball is thrown and whether it started
