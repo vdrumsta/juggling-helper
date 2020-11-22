@@ -6,6 +6,7 @@ When I started learning how to juggle, I was constantly reminded to try and thro
 This program uses your webcam to detect the juggling balls and mark their maximum height reached. It will then playback a sound to indicate if the ball was thrown at a correct height, letting you improve over time as you get feedback from the program.
 
 [![Juggling Helper Video](images/preview_short2.gif)](https://www.youtube.com/watch?v=vroV6zRVIQU&feature=youtu.be)
+
 *click on the gif to see a video with sound*
 
 Is this really a problem big enough to need a program for? Probably not, but I had trouble telling what height I was throwing the balls at when they were above my eye level (as shown in the picture below). Plus it gave me an excuse to learn a little bit more about machine learning and computer vision.
@@ -40,15 +41,15 @@ Building OpenCV to include CUDA (Nvidia GPU feature) - https://www.youtube.com/w
 ```sh
 git clone https://github.com/worm00111/juggling-helper.git
 ```
-2a. Install pip packages
+2. Install pip packages
 ```sh
 pip install -r requirements.txt
 ```
-2b. (Optional) Build OpenCV with CUDA support (if you want to detect objects with GPU). This is highly recommended for real time processing.
+3. (Optional) Build OpenCV with CUDA support (if you want to detect objects with GPU). This is highly recommended for real time processing.
 ```sh
 See Prerequisites section
 ```
-3. Run the program from the root directory
+4. Run the program from the root directory
 ```sh
 python src/juggling_helper.py
 ```
