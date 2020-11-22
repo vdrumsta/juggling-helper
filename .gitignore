@@ -1,10 +1,10 @@
+# Juggling helper config and csv files
+config.ini
+statistics.csv
+
 # Visual Studio Code files
 .vscode/*
 src/.vscode/*
-!.vscode/settings.json
-!.vscode/tasks.json
-!.vscode/launch.json
-!.vscode/extensions.json
 *.code-workspace
 
 # Local History for Visual Studio Code
