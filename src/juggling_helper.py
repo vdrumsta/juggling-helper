@@ -22,6 +22,7 @@ RESIZED_HEIGHT = int(FRAME_HEIGHT * RESIZE_SCALAR)
 TRACKER_REACQUISITION_RANGE = int(settings.trackrange * RESIZE_SCALAR)
 TRACKER_REACQUISITION_TIME = settings.tracktime
 DEBUG_MODE = settings.debug
+CAPTURE_FRAMERATE = settings.framerate  # This is a framerate of the .avi recording
 
 # Start the stopwatch / counter  
 t1_start = process_time() 
@@ -64,7 +65,7 @@ frame = cv2.resize(frame, None, fx=RESIZE_SCALAR, fy=RESIZE_SCALAR)
 height, width, channels = frame.shape # cv2 resizes to closest compatible resolution
 fourcc = cv2.VideoWriter_fourcc(*'XVID')    # Video encoder
 pathname = "../captures/capture_" + strftime("%Y%m%d-%H%M%S") + ".avi"
-capture_out = cv2.VideoWriter(pathname, fourcc, 24, (width, height)) # Encoded video properties
+capture_out = cv2.VideoWriter(pathname, fourcc, CAPTURE_FRAMERATE, (width, height)) 
 
 while True:
     frame_start_time = process_time()

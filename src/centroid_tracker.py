@@ -11,7 +11,7 @@ class JuggleDetails:
     """ Used to record how high a juggling ball is thrown and whether it started
         falling down"""
     centroid: Tuple[int, int] # X, Y coordinates of the juggling ball's current point
-    max_height_centroid: Tuple[int, int] # X, Y coordinates of the juggling ball at its heighest point
+    max_height_centroid: Tuple[int, int] # X, Y coordinates of the ball at its heighest point
     last_seen_timestamp: float
     is_falling: bool = False
 
@@ -200,8 +200,7 @@ class CentroidTracker():
                 used_cols.add(col)
                 used_rows.add(row)
 
-            # Compute both the row and column index we have NOT yet
-            # examined
+            # Compute both the row and column index we have NOT yet examined
             unused_cols = set(range(0, D.shape[1])).difference(used_cols)
 
             # Register all unused input centroids

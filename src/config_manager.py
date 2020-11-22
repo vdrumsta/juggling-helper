@@ -12,6 +12,7 @@ class UserSettings:
     debug: bool
     tracktime: float
     trackrange: int
+    framerate: int
     success_area_y: int
     success_area_length: int
 
@@ -26,6 +27,7 @@ class ConfigManager:
         debug = False,
         tracktime = 0.2,
         trackrange = 150,
+        framerate = 24,
         success_area_y = int(680 / 4 * 0.4),
         success_area_length = int(480 / 10 * 0.4)
     )
@@ -51,6 +53,7 @@ class ConfigManager:
                 debug = self._args.debug,
                 tracktime = self._args.tracktime,
                 trackrange = self._args.trackrange,
+                framerate = self._args.trackrange,
                 success_area_y = success_area_y,
                 success_area_length = success_area_length,
             )
@@ -63,6 +66,7 @@ class ConfigManager:
         parser.add_argument('-d', '--debug', action='store_true', help="Enable printing of FPS and draw squares around balls")
         parser.add_argument('-t', '--tracktime', type=float, default=0.2, metavar="", help="Max time to reacquire a tracked ball")
         parser.add_argument('-r', '--trackrange', type=int, default=150, metavar="", help="Max range to reacquire a tracked ball")
+        parser.add_argument('-f', '--framerate', type=int, default=24, metavar="", help="Framerate at which to record the output video")
         parser.add_argument('--reset', action='store_true', help="Reset settings to their default parameters")
         
         self._args = parser.parse_args()

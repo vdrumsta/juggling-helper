@@ -1,8 +1,3 @@
 This folder stores the video capture of your juggling session.
 
-The video's capture framerate is hardcoded as this is the only option OpenCV supports. This means that the speed of the video will be adjusted to match the framerate. If your computer is fast enough to handle the capture at the specified rate, you can increase it, but don't set above what your camera capture framerate is.
-
-The capture framerate can be adjusted inside the juggling_helper.py file at line:
-capture_out = cv2.VideoWriter(pathname, fourcc, 24, (width, height))
-
-Change that number '24' to your desired framerate
+To change the program's recorded video framerate, add the flag -f <framerate number> e.g. -f 10
