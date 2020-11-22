@@ -23,9 +23,7 @@ class HUDController:
         reached max height in the desirable boundary box
     """
 
-    def __init__(self, success_area_y, success_area_length, frame_width, reacquisition_range):
-        self.reacquisition_range = reacquisition_range  # TODO: Remove after done with balancing
-
+    def __init__(self, success_area_y, success_area_length, frame_width):
         self.current_draw_points: OrderedDict[int, DrawPoint] = OrderedDict()
         self.drawn_ball_ids = []
         self.not_drawn_balls: OrderedDict[int, Tuple[int, int]] = OrderedDict()
@@ -128,7 +126,6 @@ class HUDController:
             else:
                 draw_color = (0, 255, 0) if recorded_point.is_successful else (0, 0, 255)
                 cv2.circle(frame, recorded_point.draw_centroid, 4, draw_color, -1)
-                cv2.circle(frame, recorded_point.draw_centroid, self.reacquisition_range, draw_color, 1)    # TODO: Remove this when done debugging
         
         # Remove points that have already been drawn for a while
         for id in draw_points_to_remove:

@@ -31,8 +31,7 @@ t1_start = process_time()
 hud = HUDController(
     success_area_y=settings.success_area_y,
     success_area_length=settings.success_area_length,
-    frame_width=RESIZED_WIDTH,
-    reacquisition_range=TRACKER_REACQUISITION_RANGE
+    frame_width=RESIZED_WIDTH
 )
 
 # Initialize the centroid tracker which keeps track of the same balls between frames
