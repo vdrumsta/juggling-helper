@@ -4,7 +4,7 @@ statistics.csv
 
 # Visual Studio Code files
 .vscode/*
-src/.vscode/*
+src/.vscode/
 *.code-workspace
 
 # Local History for Visual Studio Code
